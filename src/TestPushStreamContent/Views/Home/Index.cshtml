@@ -1,0 +1,63 @@
+﻿<input id="go-text" type="text" value="" /><input id="go-button" type="button" value="Go" />
+<div id="images" class="row">
+</div>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+
+        var http = new XMLHttpRequest();
+        var aggregatedData = "";
+        $("#go-button").click(function () {
+            var record = $('#go-text').val();
+            var selectorString = 'div[data-record="' + record + '"]';
+            $('html, body').animate({ scrollTop: $(selectorString).offset().top }, 'slow');
+        });
+
+        loadImages();
+
+        function loadImages() {
+            http.open('GET', '/api/images');
+            http.onreadystatechange = function () { handleResponse(); };
+            http.seenBytes = 0;
+            http.send(null);
+        }
+
+        function handleResponse() {
+            if ((http.readyState != 4 && http.readyState != 3) ||
+                (http.readyState == 3 && http.status != 200) ||
+                (http.responseText === null)) {
+                return;
+            }
+
+
+            //get the new data only
+            aggregatedData += http.responseText.substr(http.seenBytes);
+            http.seenBytes = http.responseText.length;
+            if (http.readyState == 4) {
+                completePageLoad();
+            }
+            else { buildPage(); }
+        }
+
+        function completePageLoad() {
+            //debugger;
+            while (aggregatedData.length > 0) {
+                buildPage();
+            }
+        }
+
+        function buildPage() {
+            var newData = aggregatedData.match(/{[^}]+}/);
+            if (newData != null) {
+                var json = JSON.parse(newData[0]);
+                //These lines are here for debugging/seeing what is happening
+                //$('#images').append('<div class="page" data-record="' + json.record + '"><img src="data:image/png;base64,' + json.data + '" /></div>');
+                //$('#images').append('<div>' + json.image + '</div><br/>');
+                $('#images').append('<div class="page" data-page="' + json.page + '"><img src="data:image/png;base64,' + json.image + '" /></div>');
+                aggregatedData = aggregatedData.replace(newData[0], "");
+            }
+        }
+
+    });
+
+</script>
